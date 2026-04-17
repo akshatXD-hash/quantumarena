@@ -66,5 +66,7 @@ model MedicalKb {
   source    String
   term      String
   metadata  Json       @default("{}")
-  createdAt DateTime   @default(now()) @db.Timestamptz()
+  createdAt DateTime   @default(now()) @db.Timestamptz() @map("created_at")
+
+  @@map("medical_kb")
 }

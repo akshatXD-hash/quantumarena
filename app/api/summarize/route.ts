@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { chunkBySections } from "@/lib/section-chunker";
 import { detectAbnormals } from "@/lib/abnormal-detector";
 import { summarizeSchema } from "@/lib/validators";
+import { retrieveMedicalContext } from "@/lib/rag";
 import type { AbnormalFlag, SummaryResult } from "@/types";
 
 const openai = new OpenAI({
@@ -40,7 +41,20 @@ async function summarizeSection(
           .join("\n")
       : "None detected";
 
+  const contextDocs = await retrieveMedicalContext(text);
+  const contextText = contextDocs.length
+    ? contextDocs
+        .map(
+          (doc, index) =>
+            `Context ${index + 1}: ${doc.term} (${doc.category}) — ${doc.source}\n${doc.content}`
+        )
+        .join("\n\n")
+    : "No relevant medical knowledge base context was found for this section.";
+
   const prompt = `You are a medical report explainer helping patients understand their results.
+
+Medical Knowledge Base Context:
+${contextText}
 
 Section: ${sectionName}
 Report text:
@@ -50,10 +64,11 @@ Pre-detected abnormal values (use ONLY these, do not invent others):
 ${flagText}
 
 Instructions:
-- Explain in Grade 8 plain English so any patient understands
-- Mark abnormal values with [ABNORMAL] inline
-- Never diagnose, prescribe, or speculate
-- End with exactly 3 actionable next steps
+- Use only the provided medical knowledge base context and the report text.
+- Explain in Grade 8 plain English so any patient understands.
+- Mark abnormal values with [ABNORMAL] inline.
+- Never diagnose, prescribe, or speculate.
+- End with exactly 3 actionable next steps.
 
 Respond ONLY as valid JSON:
 {

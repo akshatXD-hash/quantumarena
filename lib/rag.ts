@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { prisma } from "./prisma";
+import type { MedicalKB } from "@/types";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
