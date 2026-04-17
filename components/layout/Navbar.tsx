@@ -41,9 +41,17 @@ export function Navbar({ user }: NavbarProps) {
                 </Link>
               </div>
             ) : (
-              <Link href="/history" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                History
-              </Link>
+              <div className="hidden sm:flex items-center gap-4 ml-4">
+                <Link href="/upload" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  Upload PDF
+                </Link>
+                <Link href="/listen" className="text-sm font-medium text-primary hover:opacity-80 transition-opacity">
+                  Record Audio
+                </Link>
+                <Link href="/history" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  History
+                </Link>
+              </div>
             )}
           </div>
 

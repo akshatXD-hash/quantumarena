@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Mic,
 } from "lucide-react";
 import { useReportStore } from "@/store/report-store";
 import type { UploadResult } from "@/types";
@@ -315,7 +316,19 @@ export function UploadPageClient() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <div className="flex flex-col items-center text-center gap-3 mt-6">
+        <p className="text-sm font-medium text-muted-foreground">
+          Want to record a live medical conversation instead?
+        </p>
+        <button
+            onClick={() => router.push("/listen")}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 hover:scale-105 transition-all text-sm font-semibold"
+        >
+          <Mic className="h-4 w-4" /> Try Audio Translation
+        </button>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground pt-4">
         <strong>Privacy:</strong> Your report is processed securely and never shared.
       </p>
     </div>
