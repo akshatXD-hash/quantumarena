@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Activity, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle2,
+  Stethoscope, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+type Role = "PATIENT" | "ADMIN";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -20,6 +23,7 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
+  const [role, setRole] = useState<Role>("PATIENT");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,7 +52,7 @@ export default function SignupPage() {
         email: form.email,
         password: form.password,
         name: form.name || undefined,
-        role: "PATIENT",
+        role,
       }),
     });
 
@@ -78,7 +82,8 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/");
+    // Redirect based on role
+    router.push(role === "ADMIN" ? "/admin" : "/upload");
     router.refresh();
   }
 
@@ -111,6 +116,42 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Role selector */}
+            <div className="space-y-2">
+              <Label>I am signing up as</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("PATIENT")}
+                  className={[
+                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-150 text-sm font-medium",
+                    role === "PATIENT"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-muted-foreground/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/30",
+                  ].join(" ")}
+                >
+                  <Stethoscope className="h-5 w-5" />
+                  Patient
+                  <span className="text-[10px] font-normal opacity-70">Upload & view reports</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("ADMIN")}
+                  className={[
+                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-150 text-sm font-medium",
+                    role === "ADMIN"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-muted-foreground/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/30",
+                  ].join(" ")}
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  Admin
+                  <span className="text-[10px] font-normal opacity-70">Manage all patients</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">
                 Full name <span className="text-muted-foreground text-xs">(optional)</span>
@@ -129,6 +170,7 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email address</Label>
               <div className="relative">
@@ -146,6 +188,7 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -193,6 +236,7 @@ export default function SignupPage() {
               )}
             </div>
 
+            {/* Confirm password */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm password</Label>
               <div className="relative">
@@ -221,7 +265,7 @@ export default function SignupPage() {
             )}
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Creating account…" : "Create account"}
+              {loading ? "Creating account…" : `Create ${role === "ADMIN" ? "Admin" : "Patient"} Account`}
             </Button>
           </form>
 

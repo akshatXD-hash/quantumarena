@@ -5,7 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getProfile();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN") redirect("/");
+  if (user.role !== "ADMIN") redirect("/upload");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

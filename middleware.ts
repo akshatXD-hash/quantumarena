@@ -33,10 +33,12 @@ export default withAuth(
 export const config = {
   matcher: [
     "/",
+    "/upload",
     "/processing/:path*",
     "/results/:path*",
     "/history/:path*",
     "/admin/:path*",
+    "/api/upload",
     "/api/summarize",
     "/api/reports/:path*",
     "/api/profile/:path*",

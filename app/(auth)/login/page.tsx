@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Activity, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -13,7 +13,6 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
-  const redirect = callbackUrl && !callbackUrl.includes("/login") ? callbackUrl : "/upload";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,14 +31,24 @@ export default function LoginPage() {
       redirect: false,
     });
 
-    setLoading(false);
-
     if (result?.error) {
+      setLoading(false);
       setError("Invalid email or password. Please try again.");
       return;
     }
 
-    router.push(redirect);
+    // Get session to check role and redirect accordingly
+    const session = await getSession();
+    setLoading(false);
+
+    const destination =
+      callbackUrl && !callbackUrl.includes("/login")
+        ? callbackUrl
+        : session?.user?.role === "ADMIN"
+        ? "/admin"
+        : "/upload";
+
+    router.push(destination);
     router.refresh();
   }
 

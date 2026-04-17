@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { TableSkeleton } from "@/components/layout/LoadingSkeleton";
-import { createClient } from "@/lib/supabase/client";
 import type {
   ProfileWithReportCount,
   UserRole,
@@ -11,22 +11,18 @@ import type {
 } from "@/types";
 
 export default function AdminUsersPage() {
+  const { data: session } = useSession();
   const [users, setUsers] = useState<ProfileWithReportCount[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [currentAdminId, setCurrentAdminId] = useState("");
 
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<UserRole | "all">("all");
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setCurrentAdminId(data.user.id);
-    });
-  }, []);
+  // Current admin's ID from NextAuth session (no Supabase needed)
+  const currentAdminId = session?.user?.id ?? "";
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);

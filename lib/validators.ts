@@ -8,7 +8,7 @@ export const uploadSchema = z.object({
 });
 
 export const summarizeSchema = z.object({
-  reportId: z.string().uuid(),
+  reportId: z.string().min(1, "Report ID is required"),
   text: z.string().min(10, "Text must be at least 10 characters"),
 });
 

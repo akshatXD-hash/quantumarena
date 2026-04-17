@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { userRoleUpdateSchema } from "@/lib/validators";
 
@@ -20,14 +20,15 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const service = createServiceClient();
-  const { data, error: dbError } = await service
-    .from("users")
-    .update({ role: parsed.data.role })
-    .eq("id", params.id)
-    .select("id, email, role")
-    .single();
-
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  return NextResponse.json(data);
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: params.id },
+      data: { role: parsed.data.role.toUpperCase() as "PATIENT" | "ADMIN" },
+      select: { id: true, email: true, role: true },
+    });
+    return NextResponse.json(updatedUser);
+  } catch (dbError) {
+    console.error("[user update]", dbError);
+    return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
+  }
 }
