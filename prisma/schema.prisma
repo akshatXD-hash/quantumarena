@@ -57,3 +57,14 @@ model Summary {
   nextSteps     Json     @default("[]")
   createdAt     DateTime @default(now())
 }
+
+model MedicalKb {
+  id        BigInt     @id @default(autoincrement())
+  content   String
+  embedding Unsupported("vector(1536)")
+  category  String
+  source    String
+  term      String
+  metadata  Json       @default("{}")
+  createdAt DateTime   @default(now()) @db.Timestamptz()
+}
