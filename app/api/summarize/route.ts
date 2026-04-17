@@ -16,6 +16,15 @@ const openai = new OpenAI({
   },
 });
 
+const FREE_MODELS = [
+  "google/gemini-2.5-flash-free",
+  "meta-llama/llama-3-8b-instruct:free",
+  "mistralai/mistral-nemo-instruct-2407:free",
+  "microsoft/phi-3-mini-128k-instruct:free",
+  "qwen/qwen-2-7b-instruct:free",
+  "huggingfaceh4/zephyr-7b-beta:free"
+];
+
 async function summarizeSection(
   sectionName: string,
   text: string,
@@ -54,39 +63,52 @@ Respond ONLY as valid JSON:
   "next_steps": ["step 1", "step 2", "step 3"]
 }`;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a medical report explainer. Always respond with valid JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.3,
-    });
+  let lastError = null;
 
-    const content = response.choices[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(content) as SummaryResult;
-    return {
-      summary_text: parsed.summary_text ?? "No summary generated.",
-      abnormal_flags: Array.isArray(parsed.abnormal_flags) ? parsed.abnormal_flags : flags,
-      citations: Array.isArray(parsed.citations) ? parsed.citations : [],
-      next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
-    };
-  } catch {
-    return {
-      summary_text: `Summary for "${sectionName}" could not be generated. Please review the original text.`,
-      abnormal_flags: flags,
-      citations: [],
-      next_steps: [
-        "Review this section with your doctor.",
-        "Ask your healthcare provider to explain any unfamiliar terms.",
-        "Bring this report to your next appointment.",
-      ],
-    };
+  for (const model of FREE_MODELS) {
+    try {
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: "You are a medical report explainer. Always respond with valid JSON only.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+      });
+
+      const content = response.choices[0]?.message?.content ?? "{}";
+      // Sometimes models wrap json inside ```json markdown blocks. Trim them.
+      const cleanContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsed = JSON.parse(cleanContent) as SummaryResult;
+      
+      return {
+        summary_text: parsed.summary_text ?? "No summary generated.",
+        abnormal_flags: Array.isArray(parsed.abnormal_flags) ? parsed.abnormal_flags : flags,
+        citations: Array.isArray(parsed.citations) ? parsed.citations : [],
+        next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
+      };
+    } catch (err) {
+      console.warn(`[Summarize] Model ${model} failed, falling back to next...`, err instanceof Error ? err.message : String(err));
+      lastError = err;
+      continue;
+    }
   }
+
+  // If ALL models fail
+  console.error("[Summarize] All free models failed. Last error:", lastError);
+  return {
+    summary_text: `Summary for "${sectionName}" could not be generated. All AI models failed to respond correctly.`,
+    abnormal_flags: flags,
+    citations: [],
+    next_steps: [
+      "Review this section with your doctor.",
+      "Ask your healthcare provider to explain any unfamiliar terms.",
+      "Bring this report to your next appointment.",
+    ],
+  };
 }
 
 export async function POST(request: NextRequest) {

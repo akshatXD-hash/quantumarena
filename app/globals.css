@@ -67,3 +67,39 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide unnecessary elements natively */
+  nav, footer, .hide-on-print {
+    display: none !important;
+  }
+
+  /* Force Radix UI accordions open for printing */
+  [data-radix-collection-item], [data-state="closed"] {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Force background colors to print (if browser allows) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Avoid cutting cards in half */
+  .accordion-item, .break-inside-avoid {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  body {
+    background-color: white !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

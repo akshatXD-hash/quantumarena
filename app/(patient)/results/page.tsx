@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Copy, RotateCcw, CheckCheck } from "lucide-react";
+import { Copy, RotateCcw, CheckCheck, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -70,6 +70,10 @@ export default function ResultsPage() {
     router.push("/");
   }
 
+  function handleDownloadPDF() {
+    window.print();
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -85,8 +89,10 @@ export default function ResultsPage() {
   const defaultOpen = activeSummaries[0]?.id ?? "";
 
   return (
-    <>
-      <DisclaimerBanner />
+    <div className="print:bg-white">
+      <div className="hide-on-print">
+        <DisclaimerBanner />
+      </div>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -95,7 +101,7 @@ export default function ResultsPage() {
               <p className="text-sm text-muted-foreground mt-0.5">{filename}</p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 hide-on-print">
             <Button variant="outline" size="sm" onClick={handleCopy}>
               {copied ? (
                 <>
@@ -109,6 +115,10 @@ export default function ResultsPage() {
                 </>
               )}
             </Button>
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
+              <Download className="h-4 w-4 mr-1" />
+              Download PDF
+            </Button>
             <Button variant="outline" size="sm" onClick={handleNewReport}>
               <RotateCcw className="h-4 w-4" />
               New report
@@ -116,8 +126,8 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:block border-0">
+          <div className="space-y-2 hide-on-print">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Original report
             </p>
@@ -137,14 +147,14 @@ export default function ResultsPage() {
                 type="single"
                 collapsible
                 defaultValue={defaultOpen}
-                className="space-y-1"
+                className="space-y-1 accordion-container"
               >
                 {activeSummaries.map((summary) => (
                   <SummarySection key={summary.id} summary={summary} />
                 ))}
               </Accordion>
 
-              <div className="mt-6 flex gap-2 pt-4 border-t">
+              <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t hide-on-print">
                 <Button
                   variant="outline"
                   size="sm"
@@ -167,6 +177,15 @@ export default function ResultsPage() {
                   variant="default"
                   size="sm"
                   className="flex-1"
+                  onClick={handleDownloadPDF}
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
                   onClick={handleNewReport}
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -177,6 +196,6 @@ export default function ResultsPage() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
