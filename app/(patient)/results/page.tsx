@@ -47,12 +47,16 @@ export default function ResultsPage() {
   function handleCopy() {
     const text = activeSummaries
       .map(
-        (s) =>
-          `## ${s.section_name}\n\n${s.summary_text}\n\n${
-            s.next_steps.length
-              ? "Next steps:\n" + s.next_steps.map((n, i) => `${i + 1}. ${n}`).join("\n")
+        (s: any) => {
+          const sectionName = s.sectionName || s.section_name;
+          const summaryText = s.summaryText || s.summary_text;
+          const nextSteps = s.nextSteps || s.next_steps || [];
+          return `## ${sectionName}\n\n${summaryText}\n\n${
+            nextSteps.length
+              ? "Next steps:\n" + nextSteps.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")
               : ""
-          }`
+          }`;
+        }
       )
       .join("\n\n---\n\n");
     navigator.clipboard.writeText(text).then(() => {

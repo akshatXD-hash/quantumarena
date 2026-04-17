@@ -18,48 +18,48 @@ export function SummarySection({ summary }: SummarySectionProps) {
   return (
     <AccordionItem value={summary.id}>
       <AccordionTrigger className="text-left font-semibold">
-        {summary.section_name}
+        {(summary as any).sectionName || (summary as any).section_name}
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-4">
           <div className="prose prose-sm max-w-none">
             <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {summary.summary_text}
+              {(summary as any).summaryText || (summary as any).summary_text}
             </p>
           </div>
 
-          {summary.abnormal_flags.length > 0 && (
+          {((summary as any).abnormalFlags || (summary as any).abnormal_flags || []).length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Abnormal Values
               </h4>
               <div className="space-y-2">
-                {summary.abnormal_flags.map((flag, i) => (
+                {((summary as any).abnormalFlags || (summary as any).abnormal_flags || []).map((flag: any, i: number) => (
                   <AbnormalFlagCard key={i} flag={flag} />
                 ))}
               </div>
             </div>
           )}
 
-          {summary.citations.length > 0 && (
+          {((summary as any).citations || []).length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Sources
               </h4>
               <div className="flex flex-wrap gap-2">
-                {summary.citations.map((citation, i) => (
+                {((summary as any).citations || []).map((citation: any, i: number) => (
                   <CitationChip key={i} citation={citation} />
                 ))}
               </div>
             </div>
           )}
 
-          {summary.next_steps.length > 0 && (
+          {((summary as any).nextSteps || (summary as any).next_steps || []).length > 0 && (
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Recommended Next Steps
               </h4>
-              <NextStepsList steps={summary.next_steps} />
+              <NextStepsList steps={((summary as any).nextSteps || (summary as any).next_steps || [])} />
             </div>
           )}
         </div>

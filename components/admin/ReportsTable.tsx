@@ -107,18 +107,18 @@ export function ReportsTable({
                 reports.map((report) => (
                   <tr key={report.id} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {report.profiles?.email}
+                      {(report as any).user?.email}
                     </td>
                     <td className="px-4 py-3 font-medium max-w-[200px] truncate">
                       {report.filename}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline" className="text-xs">
-                        {report.file_type.toUpperCase()}
+                        {((report as any).fileType || "").toUpperCase()}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {formatDate(report.created_at)}
+                      {formatDate((report as any).createdAt)}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={STATUS_VARIANTS[report.status]}>
@@ -126,7 +126,7 @@ export function ReportsTable({
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {report.summary_count ?? "—"}
+                      {(report as any).summaryCount ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button variant="ghost" size="sm" asChild>
