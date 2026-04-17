@@ -17,12 +17,11 @@ const openai = new OpenAI({
 });
 
 const FREE_MODELS = [
-  "google/gemini-2.5-flash-free",
-  "meta-llama/llama-3-8b-instruct:free",
-  "mistralai/mistral-nemo-instruct-2407:free",
-  "microsoft/phi-3-mini-128k-instruct:free",
-  "qwen/qwen-2-7b-instruct:free",
-  "huggingfaceh4/zephyr-7b-beta:free"
+  "openrouter/free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "google/gemma-3-27b-it:free",
+  "deepseek/deepseek-r1:free",
+  "mistralai/mistral-small-3.1-24b-instruct:free"
 ];
 
 async function summarizeSection(
@@ -80,8 +79,10 @@ Respond ONLY as valid JSON:
       });
 
       const content = response.choices[0]?.message?.content ?? "{}";
-      // Sometimes models wrap json inside ```json markdown blocks. Trim them.
-      const cleanContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+      
+      // Robust extract JSON from text even if the model chatters before/after
+      const match = content.match(/\{[\s\S]*\}/);
+      const cleanContent = match ? match[0] : "{}";
       const parsed = JSON.parse(cleanContent) as SummaryResult;
       
       return {
@@ -91,7 +92,7 @@ Respond ONLY as valid JSON:
         next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
       };
     } catch (err) {
-      console.warn(`[Summarize] Model ${model} failed, falling back to next...`, err instanceof Error ? err.message : String(err));
+      console.warn(`[Summarize] Model ${model} failed, falling back to next...`);
       lastError = err;
       continue;
     }
