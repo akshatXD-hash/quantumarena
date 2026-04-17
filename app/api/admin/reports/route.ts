@@ -1,75 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { reportFilterSchema } from "@/lib/validators";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const { error } = await requireAdmin();
+  if (error) return error;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { searchParams } = request.nextUrl;
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
+  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10"));
+  const search = searchParams.get("search") ?? "";
+  const status = searchParams.get("status") ?? "";
+  const fileType = searchParams.get("fileType") ?? "";
+  const skip = (page - 1) * limit;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+  const where = {
+    ...(status ? { status: status as "PROCESSING" | "COMPLETE" | "ERROR" } : {}),
+    ...(fileType ? { fileType } : {}),
+    ...(search
+      ? {
+          OR: [
+            { filename: { contains: search, mode: "insensitive" as const } },
+            { user: { email: { contains: search, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+  };
 
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const [reports, total] = await Promise.all([
+    prisma.report.findMany({
+      where,
+      include: { user: { select: { email: true, name: true } }, _count: { select: { summaries: true } } },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.report.count({ where }),
+  ]);
 
-    const { searchParams } = request.nextUrl;
-    const parsed = reportFilterSchema.safeParse(Object.fromEntries(searchParams));
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
-    }
-
-    const { page, limit, status, fileType, userId, search } = parsed.data;
-    const offset = (page - 1) * limit;
-
-    const service = createServiceClient();
-
-    let query = service
-      .from("reports")
-      .select(
-        `
-        *,
-        profiles!inner(id, email, full_name, role)
-      `,
-        { count: "exact" }
-      )
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (status) query = query.eq("status", status);
-    if (fileType) query = query.eq("file_type", fileType);
-    if (userId) query = query.eq("user_id", userId);
-    if (search) {
-      query = query.or(
-        `filename.ilike.%${search}%,profiles.email.ilike.%${search}%`
-      );
-    }
-
-    const { data, count, error } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      data: data ?? [],
-      total: count ?? 0,
-      page,
-      limit,
-      totalPages: Math.ceil((count ?? 0) / limit),
-    });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+  return NextResponse.json({
+    data: reports.map((r: typeof reports[number]) => ({
+      ...r,
+      fileSizeBytes: r.fileSizeBytes.toString(),
+      summaryCount: r._count.summaries,
+    })),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 }

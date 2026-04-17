@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  ADMIN
+}
+
+enum ReportStatus {
+  PROCESSING
+  COMPLETE
+  ERROR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(PATIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reports   Report[]
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename      String
+  fileType      String
+  mimeType      String
+  fileSizeBytes BigInt
+  rawText       String?      @db.Text
+  pageCount     Int?
+  status        ReportStatus @default(PROCESSING)
+  errorMessage  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  summaries     Summary[]
+}
+
+model Summary {
+  id            String   @id @default(cuid())
+  reportId      String
+  report        Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sectionName   String
+  summaryText   String   @db.Text
+  abnormalFlags Json     @default("[]")
+  citations     Json     @default("[]")
+  nextSteps     Json     @default("[]")
+  createdAt     DateTime @default(now())
+}

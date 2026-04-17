@@ -1,31 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { LogOut, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/client";
 import { useReportStore } from "@/store/report-store";
-import type { Profile } from "@/types";
+import type { SessionUser } from "@/lib/auth";
 
 interface NavbarProps {
-  profile: Profile;
+  user: SessionUser;
 }
 
-export function Navbar({ profile }: NavbarProps) {
-  const router = useRouter();
+export function Navbar({ user }: NavbarProps) {
   const reset = useReportStore((s) => s.reset);
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
     reset();
-    router.push("/login");
-    router.refresh();
+    await signOut({ callbackUrl: "/login" });
   }
 
-  const isAdmin = profile.role === "admin";
+  const isAdmin = user.role === "ADMIN";
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,9 +29,8 @@ export function Navbar({ profile }: NavbarProps) {
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
               <Activity className="h-5 w-5 text-primary" />
-              <span>MediSumm</span>
+              MediSumm
             </Link>
-
             {isAdmin ? (
               <div className="hidden sm:flex items-center gap-4">
                 <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -54,11 +48,11 @@ export function Navbar({ profile }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden sm:block">{profile.email}</span>
-              {isAdmin && (
-                <Badge variant="purple" className="hidden sm:flex">Admin</Badge>
-              )}
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-sm text-muted-foreground truncate max-w-[180px]">
+                {user.name ?? user.email}
+              </span>
+              {isAdmin && <Badge variant="purple">Admin</Badge>}
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" />

@@ -1,71 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { userFilterSchema } from "@/lib/validators";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const { error } = await requireAdmin();
+  if (error) return error;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { searchParams } = request.nextUrl;
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
+  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10"));
+  const role = searchParams.get("role") as "PATIENT" | "ADMIN" | null;
+  const search = searchParams.get("search") ?? "";
+  const skip = (page - 1) * limit;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+  const where = {
+    ...(role ? { role } : {}),
+    ...(search
+      ? {
+          OR: [
+            { email: { contains: search, mode: "insensitive" as const } },
+            { name: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
-    if (profile?.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        _count: { select: { reports: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.user.count({ where }),
+  ]);
 
-    const { searchParams } = request.nextUrl;
-    const parsed = userFilterSchema.safeParse(Object.fromEntries(searchParams));
-
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
-    }
-
-    const { page, limit, role, search } = parsed.data;
-    const offset = (page - 1) * limit;
-
-    const service = createServiceClient();
-
-    let query = service
-      .from("profiles")
-      .select("*, reports(count)", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (role) query = query.eq("role", role);
-    if (search) {
-      query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
-    }
-
-    const { data, count, error } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const users = (data ?? []).map((u) => ({
+  return NextResponse.json({
+    data: users.map((u: typeof users[number]) => ({
       ...u,
-      report_count: Array.isArray(u.reports) ? u.reports.length : 0,
-      reports: undefined,
-    }));
-
-    return NextResponse.json({
-      data: users,
-      total: count ?? 0,
-      page,
-      limit,
-      totalPages: Math.ceil((count ?? 0) / limit),
-    });
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+      report_count: u._count.reports,
+      _count: undefined,
+    })),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 }

@@ -1,65 +1,37 @@
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/server";
-import type { Profile } from "@/types";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
+import { NextResponse } from "next/server";
+import type { Session } from "next-auth";
 
-export async function getSession() {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session;
+export type SessionUser = Session["user"];
+
+export async function getProfile(): Promise<SessionUser | null> {
+  const session = await getServerSession(authOptions);
+  return session?.user ?? null;
 }
 
-export async function getProfile(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (error) return null;
-  return data as Profile;
-}
-
-export async function ensureProfile(
-  userId: string,
-  email: string
-): Promise<void> {
-  const service = createServiceClient();
-  const { data } = await service
-    .from("profiles")
-    .select("id")
-    .eq("id", userId)
-    .single();
-
-  if (!data) {
-    await service.from("profiles").insert({
-      id: userId,
-      email,
-      role: "patient",
-    });
+export async function requireSession(): Promise<
+  { user: SessionUser; error: null } | { user: null; error: NextResponse }
+> {
+  const user = await getProfile();
+  if (!user) {
+    return {
+      user: null,
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
   }
+  return { user, error: null };
 }
 
-export async function requireAuth() {
-  const profile = await getProfile();
-  if (!profile) {
-    throw new Error("Unauthorized");
+export async function requireAdmin(): Promise<
+  { user: SessionUser; error: null } | { user: null; error: NextResponse }
+> {
+  const { user, error } = await requireSession();
+  if (error || !user) {
+    return { user: null, error: error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
-  return profile;
-}
-
-export async function requireAdmin() {
-  const profile = await getProfile();
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Forbidden");
+  if (user.role !== "ADMIN") {
+    return { user: null, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
-  return profile;
+  return { user, error: null };
 }

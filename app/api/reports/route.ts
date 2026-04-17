@@ -1,64 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { paginationSchema } from "@/lib/validators";
-import { z } from "zod";
-
-const querySchema = paginationSchema.extend({
-  status: z.enum(["processing", "complete", "error"]).optional(),
-});
+import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const { user, error } = await requireSession();
+  if (error) return error;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const { searchParams } = request.nextUrl;
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
+  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10"));
+  const skip = (page - 1) * limit;
 
-    const { searchParams } = request.nextUrl;
-    const parsed = querySchema.safeParse(Object.fromEntries(searchParams));
+  const where = user.role === "ADMIN" ? {} : { userId: user.id };
 
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
-    }
+  const [reports, total] = await Promise.all([
+    prisma.report.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: { _count: { select: { summaries: true } } },
+    }),
+    prisma.report.count({ where }),
+  ]);
 
-    const { page, limit, status } = parsed.data;
-    const offset = (page - 1) * limit;
-
-    let query = supabase
-      .from("reports")
-      .select(
-        `
-        *,
-        summaries(count)
-      `,
-        { count: "exact" }
-      )
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (status) {
-      query = query.eq("status", status);
-    }
-
-    const { data, count, error } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      data: data ?? [],
-      total: count ?? 0,
-      page,
-      limit,
-      totalPages: Math.ceil((count ?? 0) / limit),
-    });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+  return NextResponse.json({
+    data: reports.map((r: typeof reports[number]) => ({
+      ...r,
+      fileSizeBytes: r.fileSizeBytes.toString(),
+      summaryCount: r._count.summaries,
+    })),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 }
