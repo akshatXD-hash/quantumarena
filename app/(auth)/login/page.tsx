@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl = searchParams.get("callbackUrl");
+  const redirect = callbackUrl && !callbackUrl.includes("/login") ? callbackUrl : "/upload";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
