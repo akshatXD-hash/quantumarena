@@ -19,10 +19,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // PDF only
-    if (file.type !== "application/pdf") {
+    const validTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp"
+    ];
+
+    if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Only PDF files are accepted. Please upload a .pdf file." },
+        { error: "Only PDF or Image files (PNG, JPG, WEBP) are accepted." },
         { status: 415 }
       );
     }

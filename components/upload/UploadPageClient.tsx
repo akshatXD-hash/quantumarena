@@ -11,7 +11,9 @@ import {
   AlertCircle,
   Sparkles,
   Mic,
+  Image as ImageIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useReportStore } from "@/store/report-store";
 import type { UploadResult } from "@/types";
 
@@ -33,11 +35,12 @@ export function UploadPageClient() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [acceptType, setAcceptType] = useState<string>(".pdf,application/pdf,image/*");
   const inputRef = useRef<HTMLInputElement>(null);
 
   function validateFile(f: File): string | null {
-    if (f.type !== "application/pdf") {
-      return "Only PDF files are accepted. Please upload a .pdf file.";
+    if (f.type !== "application/pdf" && !f.type.startsWith("image/")) {
+      return "Only PDF and Image files (PNG, JPG, WEBP) are accepted.";
     }
     if (f.size > MAX_FILE_SIZE) {
       return `File is too large (${formatBytes(f.size)}). Maximum size is 10 MB.`;
@@ -199,7 +202,7 @@ export function UploadPageClient() {
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,application/pdf"
+            accept={acceptType}
             className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -267,14 +270,38 @@ export function UploadPageClient() {
               </div>
               <div>
                 <p className="font-semibold text-sm">
-                  {isDragOver ? "Drop your PDF here" : "Drag & drop your PDF here"}
+                  {isDragOver ? "Drop your file here" : "Drag & drop your report here"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAcceptType(".pdf,application/pdf");
+                      setTimeout(() => inputRef.current?.click(), 0);
+                    }}
+                    className="rounded-full shadow-sm hover:border-primary/50 text-foreground"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-red-500" />
+                    Upload PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAcceptType("image/*");
+                      setTimeout(() => inputRef.current?.click(), 0);
+                    }}
+                    className="rounded-full shadow-sm hover:border-primary/50 text-foreground"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2 text-blue-500" />
+                    Upload Image
+                  </Button>
+                </div>
               </div>
-              <div className="inline-flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full">
-                <FileText className="h-3.5 w-3.5 text-red-500" />
+              <div className="inline-flex items-center gap-2 bg-muted px-4 py-1.5 rounded-full mt-2">
                 <span className="text-xs text-muted-foreground font-medium">
-                  PDF only · Max 10 MB
+                  PDF or Images (Max 10 MB)
                 </span>
               </div>
             </div>
