@@ -1,5 +1,8 @@
 # MediSumm — Prototype Walkthrough
 
+photos of the actual prototype are shared in the drive below
+https://drive.google.com/drive/folders/1tUauQMKBIE96yFOJFsMkK2tC-EmXWiZe?usp=sharing
+
 What the prototype does, how to demo it, what's real vs. scaffolding, and the known edges.
 
 ---
@@ -252,3 +255,5 @@ Demo accounts to seed before judging:
 2. **Health literacy + language access at zero marginal cost.** Free translation via the right endpoint, not a marquee vendor.
 3. **Production-shaped, not a notebook.** Auth'd multi-tenant app with admin tooling.
 4. **Low unit cost.** OpenRouter free-tier + public translation + OSS OCR — baseline operating cost is near-zero, which matters for Indian primary care.
+
+
