@@ -13,7 +13,7 @@ export default function LandingNavbar({ hasUser }: { hasUser: boolean }) {
           <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-slate-100">
             🩺
           </div>
-          Med<span className="text-[#10b981]">Summary</span>
+          <span>Med<span className="text-[#10b981]">Summary</span></span>
         </div>
 
         <ul className="hidden md:flex gap-8 list-none m-0 p-0">

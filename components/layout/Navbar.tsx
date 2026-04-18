@@ -29,7 +29,7 @@ export function Navbar({ user }: NavbarProps) {
           <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-sm border border-slate-100">
             🩺
           </div>
-          Med<span className="text-[#10b981]">Summary</span>
+          <span>Med<span className="text-[#10b981]">Summary</span></span>
         </Link>
         {isAdmin ? (
           <div className="hidden sm:flex items-center gap-4 ml-2">
