@@ -79,8 +79,8 @@ export default function HistoryPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report History</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="font-['Sora'] text-2xl font-bold text-[#1a2340]">Report <span className="text-[#2ab8c8]">History</span></h1>
+        <p className="text-[#5a7080] text-sm mt-1">
           Your past uploaded reports and summaries
         </p>
       </div>
@@ -109,25 +109,25 @@ export default function HistoryPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-md border overflow-hidden">
+          <div className="glass rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Filename</th>
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Type</th>
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Size</th>
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Date</th>
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Status</th>
-                    <th className="text-left font-medium px-4 py-3 text-muted-foreground">Sections</th>
-                    <th className="text-right font-medium px-4 py-3 text-muted-foreground">Actions</th>
+                  <tr className="border-b border-white/40 bg-white/30">
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Filename</th>
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Type</th>
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Size</th>
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Date</th>
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Status</th>
+                    <th className="text-left font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Sections</th>
+                    <th className="text-right font-medium px-4 py-3 text-[#5a7080] text-xs uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reports.map((report) => (
                     <tr
                       key={report.id}
-                      className="border-b hover:bg-muted/30 transition-colors"
+                      className="border-b border-white/30 hover:bg-white/40 transition-colors"
                     >
                       <td className="px-4 py-3 font-medium max-w-[180px] truncate">
                         {report.filename}

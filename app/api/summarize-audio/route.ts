@@ -11,19 +11,25 @@ const openai = new OpenAI({
 });
 
 const FREE_MODELS = [
-  "openrouter/free",
-  "meta-llama/llama-3.3-70b-instruct:free",
   "google/gemma-3-27b-it:free",
-  "deepseek/deepseek-r1:free",
-  "mistralai/mistral-small-3.1-24b-instruct:free"
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "minimax/minimax-m2.5:free",
+  "openrouter/free"
 ];
 
 export async function POST(request: NextRequest) {
   try {
     const { transcript } = await request.json();
 
-    if (!transcript) {
-      return NextResponse.json({ error: "No transcript provided" }, { status: 400 });
+    if (!transcript || transcript.length < 10) {
+      return NextResponse.json({
+        title: "Short Conversation",
+        summary: "The recording was too short to generate a detailed summary.",
+        key_points: ["No significant data found"],
+        action_items: []
+      });
     }
 
     const prompt = `
@@ -50,6 +56,7 @@ export async function POST(request: NextRequest) {
 
     for (const model of FREE_MODELS) {
       try {
+        console.log(`[Summarize Audio] Trying model: ${model}`);
         const response = await openai.chat.completions.create({
           model,
           messages: [
@@ -60,14 +67,20 @@ export async function POST(request: NextRequest) {
             { role: "user", content: prompt },
           ],
           temperature: 0.3,
+          response_format: { type: "json_object" }
         });
 
         const content = response.choices[0]?.message?.content ?? "{}";
         const match = content.match(/\{[\s\S]*\}/);
         const cleanContent = match ? match[0] : "{}";
         const parsed = JSON.parse(cleanContent);
-        
-        return NextResponse.json(parsed);
+
+        // Validate required fields
+        if (parsed.title && parsed.summary) {
+          console.log(`[Summarize Audio] Success with model: ${model}`);
+          return NextResponse.json(parsed);
+        }
+        console.warn(`[Summarize Audio] Model ${model} returned incomplete JSON, trying next...`);
       } catch (err) {
         console.warn(`[Summarize Audio] Model ${model} failed, falling back...`);
         lastError = err;
@@ -75,10 +88,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    throw new Error("All AI models failed to summarize the audio.");
+    // Final fallback if ALL models fail - return a friendly error result instead of crashing
+    console.error("[Summarize Audio Error]: All models failed.", lastError);
+    return NextResponse.json({
+      title: "Summary (AI Offline)",
+      summary: "We were able to transcribe your audio, but our AI summarization service is currently overloaded. You can still read the raw transcript below.",
+      key_points: ["Transcription completed successfully", "AI summarization failed (rate limit)"],
+      action_items: ["Review the raw transcript manually", "Try summarizing again in a few minutes"]
+    });
 
   } catch (error: any) {
-    console.error("[Summarize Audio Error]:", error);
+    console.error("[Summarize Audio Fatal Error]:", error);
     return NextResponse.json(
       { error: error.message || "Failed to summarize audio." },
       { status: 500 }

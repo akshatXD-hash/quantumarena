@@ -78,39 +78,72 @@ export default function ListenPage() {
 
     try {
       // 1. Transcribe via AssemblyAI
+      console.log("Starting transcription...");
       const transcribeRes = await fetch("/api/transcribe", {
         method: "POST",
         body: formData,
       });
 
       if (!transcribeRes.ok) {
-        const errorData = await transcribeRes.json();
-        throw new Error(errorData.error || "Transcription failed.");
+        const errorData = await transcribeRes.json().catch(() => ({ error: "Server crashed or returned invalid response." }));
+        throw new Error(errorData.error || `Transcription failed (Status ${transcribeRes.status})`);
       }
 
-      const { text } = await transcribeRes.json();
+      const { text, summary: baseSummary } = await transcribeRes.json();
       setTranscript(text);
+      
+      // If AssemblyAI already provided a summary, use it as a starting point
+      if (baseSummary) {
+        setSummary({
+          title: "Conversation Summary",
+          summary: baseSummary,
+          key_points: [],
+          action_items: []
+        });
+      }
 
-      // 2. Summarize via OpenRouter
-      setAppState("summarizing");
+      // 2. Enhance via AI Summarizer (Structured JSON)
+      await handleSummarize(text);
+
+    } catch (err: any) {
+      console.error("Audio Process Error:", err);
+      // If it's a fetch error, it might be a timeout or network issue
+      const msg = err.message === "Failed to fetch" 
+        ? "Network error: The server took too long to respond or is offline. Please check your connection and try again."
+        : err.message || "An unexpected error occurred.";
+      setErrorMsg(msg);
+      setAppState("error");
+    }
+  };
+
+  const handleSummarize = async (textToSummarize: string) => {
+    setAppState("summarizing");
+    try {
       const summarizeRes = await fetch("/api/summarize-audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: text }),
+        body: JSON.stringify({ transcript: textToSummarize }),
       });
 
       if (!summarizeRes.ok) {
-        throw new Error("Failed to generate summary.");
+        const errorData = await summarizeRes.json().catch(() => ({ error: "Summarization service failed." }));
+        throw new Error(errorData.error || "Failed to generate structured summary.");
       }
 
       const summaryData = await summarizeRes.json();
       setSummary(summaryData);
       setAppState("completed");
-
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "An unexpected error occurred.");
-      setAppState("error");
+      console.error("Summarization Error:", err);
+      setErrorMsg(err.message || "Failed to generate structured summary.");
+      // We don't set appState to error here if we already have a transcript, 
+      // we just show the error message and stay in 'summarizing' or go to a special state?
+      // Let's go to completed if we have a summary, else error.
+      if (transcript || textToSummarize) {
+         setAppState("completed"); // At least show the transcript
+      } else {
+         setAppState("error");
+      }
     }
   };
 
@@ -129,19 +162,21 @@ export default function ListenPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="page-bg flex flex-col">
+      <div className="page-blob-tl" />
+      <div className="page-blob-br" />
       <DisclaimerBanner />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 flex flex-col gap-8 relative z-10">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Audio Translation</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="font-['Sora'] text-3xl font-bold tracking-tight text-[#1a2340]">Audio <span className="text-[#2ab8c8]">Translation</span></h1>
+          <p className="text-[#5a7080] mt-2">
             Record a live medical conversation. Our AI will transcribe the audio perfectly and generate a structured summary.
           </p>
         </div>
 
         {/* Recording Control Panel */}
-        <div className="glass p-8 rounded-2xl flex flex-col items-center justify-center text-center space-y-6">
+        <div className="glass rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-6">
           <div className="flex items-center justify-center h-24 w-24 rounded-full bg-muted/50 border border-white/20">
             {appState === "recording" ? (
               <div className="relative flex h-10 w-10">
@@ -194,10 +229,16 @@ export default function ListenPage() {
             )}
 
             {appState === "completed" && (
-              <Button onClick={handleReset} variant="outline" size="lg" className="rounded-full">
-                <RefreshCcw className="w-5 h-5 mr-2" />
-                Record Another
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => handleSummarize(transcript)} variant="ghost" size="lg" className="rounded-full border border-primary/20 hover:bg-primary/5">
+                  <RefreshCcw className="w-4 h-4 mr-2" />
+                  Retry Summary
+                </Button>
+                <Button onClick={handleReset} variant="outline" size="lg" className="rounded-full shadow-md">
+                  <Mic className="w-5 h-5 mr-2" />
+                  New Recording
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -206,7 +247,7 @@ export default function ListenPage() {
         {appState === "completed" && summary && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-bottom-8 duration-700">
             {/* Summary Card */}
-            <div className="glass p-6 rounded-2xl flex flex-col h-full border-primary/20 shadow-[0_0_30px_-10px_hsl(var(--primary))]">
+            <div className="glass rounded-3xl p-6 flex flex-col h-full border-[#2ab8c8]/20 shadow-[0_0_30px_-10px_rgba(42,184,200,0.3)]">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-foreground">AI Insight Summary</h3>
                 <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(JSON.stringify(summary, null, 2))}>
@@ -247,7 +288,7 @@ export default function ListenPage() {
             </div>
 
             {/* Transcript Card */}
-            <div className="glass p-6 rounded-2xl flex flex-col h-full">
+            <div className="glass rounded-3xl p-6 flex flex-col h-full">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-foreground">Raw Transcript</h3>
                 <Button variant="ghost" size="sm" onClick={() => {

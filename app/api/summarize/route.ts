@@ -17,11 +17,12 @@ const openai = new OpenAI({
 });
 
 const FREE_MODELS = [
-  "openrouter/free",
-  "meta-llama/llama-3.3-70b-instruct:free",
   "google/gemma-3-27b-it:free",
-  "deepseek/deepseek-r1:free",
-  "mistralai/mistral-small-3.1-24b-instruct:free"
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "minimax/minimax-m2.5:free",
+  "openrouter/free"
 ];
 
 async function summarizeSection(
@@ -32,11 +33,11 @@ async function summarizeSection(
   const flagText =
     flags.length > 0
       ? flags
-          .map(
-            (f) =>
-              `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange}, ${f.direction}, ${f.severity} severity)`
-          )
-          .join("\n")
+        .map(
+          (f) =>
+            `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange}, ${f.direction}, ${f.severity} severity)`
+        )
+        .join("\n")
       : "None detected";
 
   const prompt = `You are a medical report explainer helping patients understand their results.
@@ -79,12 +80,12 @@ Respond ONLY as valid JSON:
       });
 
       const content = response.choices[0]?.message?.content ?? "{}";
-      
+
       // Robust extract JSON from text even if the model chatters before/after
       const match = content.match(/\{[\s\S]*\}/);
       const cleanContent = match ? match[0] : "{}";
       const parsed = JSON.parse(cleanContent) as SummaryResult;
-      
+
       return {
         summary_text: parsed.summary_text ?? "No summary generated.",
         abnormal_flags: Array.isArray(parsed.abnormal_flags) ? parsed.abnormal_flags : flags,

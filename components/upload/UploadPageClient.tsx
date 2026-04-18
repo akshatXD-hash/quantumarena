@@ -169,17 +169,17 @@ export function UploadPageClient() {
     <div className="w-full max-w-xl space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
-          <Sparkles className="h-7 w-7 text-primary" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2ab8c8]/10 mb-2">
+          <Sparkles className="h-7 w-7 text-[#2ab8c8]" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Upload Your Report</h1>
-        <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+        <h1 className="font-['Sora'] text-3xl font-bold tracking-tight text-[#1a2340]">Upload Your <span className="text-[#2ab8c8]">Report</span></h1>
+        <p className="text-[#5a7080] text-sm max-w-sm mx-auto">
           Upload a PDF medical report and get an instant AI-powered plain-English summary.
         </p>
       </div>
 
       {/* Drop Zone Card */}
-      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass rounded-3xl overflow-hidden">
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -193,10 +193,10 @@ export function UploadPageClient() {
               ? "cursor-not-allowed opacity-70"
               : "cursor-pointer",
             isDragOver
-              ? "bg-primary/5 border-2 border-dashed border-primary"
+              ? "bg-[#2ab8c8]/5 border-2 border-dashed border-[#2ab8c8]"
               : file
-              ? "bg-green-50/40 border-2 border-dashed border-green-400"
-              : "border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/20",
+              ? "bg-[#10b981]/5 border-2 border-dashed border-[#10b981]/40"
+              : "border-2 border-dashed border-[#8a9aaa]/20 hover:border-[#2ab8c8]/40 hover:bg-white/40",
           ].join(" ")}
         >
           <input
@@ -213,7 +213,7 @@ export function UploadPageClient() {
 
           {isUploading ? (
             <div className="flex flex-col items-center gap-4 p-8 text-center">
-              <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              <Loader2 className="h-12 w-12 text-[#2ab8c8] animate-spin" />
               <div>
                 <p className="font-semibold text-base">Analysing your report…</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -221,9 +221,9 @@ export function UploadPageClient() {
                 </p>
               </div>
               {/* Progress bar */}
-              <div className="w-full max-w-xs bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="w-full max-w-xs bg-[#f0f4f8] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  className="h-full gradient-primary rounded-full transition-all duration-500"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -317,15 +317,15 @@ export function UploadPageClient() {
         )}
 
         {/* Action */}
-        <div className="p-4 bg-muted/30 border-t">
+        <div className="p-4 bg-white/30 backdrop-blur-sm border-t border-white/40">
           <button
             onClick={handleAnalyse}
             disabled={!file || isUploading}
             className={[
-              "w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200",
+              "w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full font-semibold text-sm transition-all duration-200",
               !file || isUploading
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0",
+                ? "bg-[#e2e8f0] text-[#8a9aaa] cursor-not-allowed"
+                : "gradient-primary-btn",
             ].join(" ")}
           >
             {isUploading ? (
@@ -344,12 +344,12 @@ export function UploadPageClient() {
       </div>
 
       <div className="flex flex-col items-center text-center gap-3 mt-6">
-        <p className="text-sm font-medium text-muted-foreground">
+        <p className="text-sm font-medium text-[#5a7080]">
           Want to record a live medical conversation instead?
         </p>
         <button
             onClick={() => router.push("/listen")}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 hover:scale-105 transition-all text-sm font-semibold"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2ab8c8]/10 text-[#2ab8c8] hover:bg-[#2ab8c8]/20 hover:scale-105 transition-all text-sm font-semibold"
         >
           <Mic className="h-4 w-4" /> Try Audio Translation
         </button>
