@@ -4,15 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "postinstall": "prisma generate",
     "seed:rag": "tsx scripts/seed-vectors.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@next/swc-win32-x64-msvc": "^16.2.4",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.0",
@@ -26,6 +27,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.0",
     "@vercel/blob": "^0.27.0",
+    "assemblyai": "^4.30.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

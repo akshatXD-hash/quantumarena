@@ -99,20 +99,27 @@ export default function SignupPage() {
     : "bg-destructive";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md space-y-8">
+    <div className="page-bg flex flex-col items-center justify-center px-4 py-10">
+      <div className="page-blob-tl" />
+      <div className="page-blob-br" />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <Activity className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">MediSumm</h1>
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-slate-100">
+              🩺
+            </div>
+            <h1 className="font-['Sora'] text-3xl font-bold tracking-tight text-[#1a2340]">
+              Med<span className="text-[#10b981]">Summary</span>
+            </h1>
           </div>
-          <p className="text-muted-foreground">Understand your medical reports in plain English</p>
+          <p className="text-[#5a7080]">Understand your medical reports in plain English</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border p-8 space-y-6">
+        <div className="glass rounded-3xl p-8 space-y-6">
           <div>
-            <h2 className="text-xl font-semibold">Create your account</h2>
-            <p className="text-sm text-muted-foreground mt-1">Free to join — no credit card needed</p>
+            <h2 className="font-['Sora'] text-xl font-semibold text-[#1a2340]">Create your account</h2>
+            <p className="text-sm text-[#5a7080] mt-1">Free to join — no credit card needed</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -264,20 +271,24 @@ export default function SignupPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full gradient-primary-btn py-3 px-6 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? "Creating account…" : `Create ${role === "ADMIN" ? "Admin" : "Patient"} Account`}
-            </Button>
+            </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-[#5a7080]">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary font-medium hover:underline">
+            <Link href="/login" className="text-[#2ab8c8] font-semibold hover:underline">
               Sign in
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+        <p className="text-center text-xs text-[#8a9aaa] max-w-sm mx-auto leading-relaxed">
           <strong>Medical disclaimer:</strong> MediSumm is for educational purposes only and does
           not provide medical advice, diagnosis, or treatment.
         </p>

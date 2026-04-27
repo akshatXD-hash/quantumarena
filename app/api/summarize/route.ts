@@ -18,12 +18,12 @@ const openai = new OpenAI({
 });
 
 const FREE_MODELS = [
-  "google/gemini-2.5-flash-free",
-  "meta-llama/llama-3-8b-instruct:free",
-  "mistralai/mistral-nemo-instruct-2407:free",
-  "microsoft/phi-3-mini-128k-instruct:free",
-  "qwen/qwen-2-7b-instruct:free",
-  "huggingfaceh4/zephyr-7b-beta:free"
+  "google/gemma-3-27b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "minimax/minimax-m2.5:free",
+  "openrouter/free"
 ];
 
 async function summarizeSection(
@@ -34,11 +34,11 @@ async function summarizeSection(
   const flagText =
     flags.length > 0
       ? flags
-          .map(
-            (f) =>
-              `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange}, ${f.direction}, ${f.severity} severity)`
-          )
-          .join("\n")
+        .map(
+          (f) =>
+            `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange}, ${f.direction}, ${f.severity} severity)`
+        )
+        .join("\n")
       : "None detected";
 
   const boostTerms = [sectionName, ...flags.map((f) => f.test)].filter(Boolean);
@@ -96,10 +96,12 @@ Respond ONLY as valid JSON:
       });
 
       const content = response.choices[0]?.message?.content ?? "{}";
-      // Sometimes models wrap json inside ```json markdown blocks. Trim them.
-      const cleanContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+
+      // Robust extract JSON from text even if the model chatters before/after
+      const match = content.match(/\{[\s\S]*\}/);
+      const cleanContent = match ? match[0] : "{}";
       const parsed = JSON.parse(cleanContent) as SummaryResult;
-      
+
       return {
         summary_text: parsed.summary_text ?? "No summary generated.",
         abnormal_flags: Array.isArray(parsed.abnormal_flags) ? parsed.abnormal_flags : flags,
@@ -107,7 +109,7 @@ Respond ONLY as valid JSON:
         next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
       };
     } catch (err) {
-      console.warn(`[Summarize] Model ${model} failed, falling back to next...`, err instanceof Error ? err.message : String(err));
+      console.warn(`[Summarize] Model ${model} failed, falling back to next...`);
       lastError = err;
       continue;
     }

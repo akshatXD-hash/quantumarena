@@ -10,7 +10,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Mic,
+  Image as ImageIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useReportStore } from "@/store/report-store";
 import type { UploadResult } from "@/types";
 
@@ -32,11 +35,12 @@ export function UploadPageClient() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [acceptType, setAcceptType] = useState<string>(".pdf,application/pdf,image/*");
   const inputRef = useRef<HTMLInputElement>(null);
 
   function validateFile(f: File): string | null {
-    if (f.type !== "application/pdf") {
-      return "Only PDF files are accepted. Please upload a .pdf file.";
+    if (f.type !== "application/pdf" && !f.type.startsWith("image/")) {
+      return "Only PDF and Image files (PNG, JPG, WEBP) are accepted.";
     }
     if (f.size > MAX_FILE_SIZE) {
       return `File is too large (${formatBytes(f.size)}). Maximum size is 10 MB.`;
@@ -165,17 +169,17 @@ export function UploadPageClient() {
     <div className="w-full max-w-xl space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
-          <Sparkles className="h-7 w-7 text-primary" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2ab8c8]/10 mb-2">
+          <Sparkles className="h-7 w-7 text-[#2ab8c8]" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Upload Your Report</h1>
-        <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+        <h1 className="font-['Sora'] text-3xl font-bold tracking-tight text-[#1a2340]">Upload Your <span className="text-[#2ab8c8]">Report</span></h1>
+        <p className="text-[#5a7080] text-sm max-w-sm mx-auto">
           Upload a PDF medical report and get an instant AI-powered plain-English summary.
         </p>
       </div>
 
       {/* Drop Zone Card */}
-      <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+      <div className="glass rounded-3xl overflow-hidden">
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -189,16 +193,16 @@ export function UploadPageClient() {
               ? "cursor-not-allowed opacity-70"
               : "cursor-pointer",
             isDragOver
-              ? "bg-primary/5 border-2 border-dashed border-primary"
+              ? "bg-[#2ab8c8]/5 border-2 border-dashed border-[#2ab8c8]"
               : file
-              ? "bg-green-50/40 border-2 border-dashed border-green-400"
-              : "border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-muted/20",
+              ? "bg-[#10b981]/5 border-2 border-dashed border-[#10b981]/40"
+              : "border-2 border-dashed border-[#8a9aaa]/20 hover:border-[#2ab8c8]/40 hover:bg-white/40",
           ].join(" ")}
         >
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,application/pdf"
+            accept={acceptType}
             className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -209,7 +213,7 @@ export function UploadPageClient() {
 
           {isUploading ? (
             <div className="flex flex-col items-center gap-4 p-8 text-center">
-              <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              <Loader2 className="h-12 w-12 text-[#2ab8c8] animate-spin" />
               <div>
                 <p className="font-semibold text-base">Analysing your report…</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -217,9 +221,9 @@ export function UploadPageClient() {
                 </p>
               </div>
               {/* Progress bar */}
-              <div className="w-full max-w-xs bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="w-full max-w-xs bg-[#f0f4f8] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  className="h-full gradient-primary rounded-full transition-all duration-500"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -266,14 +270,38 @@ export function UploadPageClient() {
               </div>
               <div>
                 <p className="font-semibold text-sm">
-                  {isDragOver ? "Drop your PDF here" : "Drag & drop your PDF here"}
+                  {isDragOver ? "Drop your file here" : "Drag & drop your report here"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAcceptType(".pdf,application/pdf");
+                      setTimeout(() => inputRef.current?.click(), 0);
+                    }}
+                    className="rounded-full shadow-sm hover:border-primary/50 text-foreground"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-red-500" />
+                    Upload PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAcceptType("image/*");
+                      setTimeout(() => inputRef.current?.click(), 0);
+                    }}
+                    className="rounded-full shadow-sm hover:border-primary/50 text-foreground"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2 text-blue-500" />
+                    Upload Image
+                  </Button>
+                </div>
               </div>
-              <div className="inline-flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full">
-                <FileText className="h-3.5 w-3.5 text-red-500" />
+              <div className="inline-flex items-center gap-2 bg-muted px-4 py-1.5 rounded-full mt-2">
                 <span className="text-xs text-muted-foreground font-medium">
-                  PDF only · Max 10 MB
+                  PDF or Images (Max 10 MB)
                 </span>
               </div>
             </div>
@@ -289,15 +317,15 @@ export function UploadPageClient() {
         )}
 
         {/* Action */}
-        <div className="p-4 bg-muted/30 border-t">
+        <div className="p-4 bg-white/30 backdrop-blur-sm border-t border-white/40">
           <button
             onClick={handleAnalyse}
             disabled={!file || isUploading}
             className={[
-              "w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200",
+              "w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full font-semibold text-sm transition-all duration-200",
               !file || isUploading
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0",
+                ? "bg-[#e2e8f0] text-[#8a9aaa] cursor-not-allowed"
+                : "gradient-primary-btn",
             ].join(" ")}
           >
             {isUploading ? (
@@ -315,7 +343,19 @@ export function UploadPageClient() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <div className="flex flex-col items-center text-center gap-3 mt-6">
+        <p className="text-sm font-medium text-[#5a7080]">
+          Want to record a live medical conversation instead?
+        </p>
+        <button
+            onClick={() => router.push("/listen")}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2ab8c8]/10 text-[#2ab8c8] hover:bg-[#2ab8c8]/20 hover:scale-105 transition-all text-sm font-semibold"
+        >
+          <Mic className="h-4 w-4" /> Try Audio Translation
+        </button>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground pt-4">
         <strong>Privacy:</strong> Your report is processed securely and never shared.
       </p>
     </div>

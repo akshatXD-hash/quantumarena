@@ -89,14 +89,16 @@ export default function ResultsPage() {
   const defaultOpen = activeSummaries[0]?.id ?? "";
 
   return (
-    <div className="print:bg-white">
+    <div className="page-bg print:bg-white">
+      <div className="page-blob-tl" />
+      <div className="page-blob-br" />
       <div className="hide-on-print">
         <DisclaimerBanner />
       </div>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 relative z-10">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">Report Summary</h1>
+            <h1 className="font-['Sora'] text-xl font-bold text-[#1a2340]">Report <span className="text-[#2ab8c8]">Summary</span></h1>
             {filename && (
               <p className="text-sm text-muted-foreground mt-0.5">{filename}</p>
             )}
@@ -131,7 +133,7 @@ export default function ResultsPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Original report
             </p>
-            <div className="h-[calc(100vh-16rem)] rounded-lg border bg-muted/30 overflow-auto">
+            <div className="h-[calc(100vh-16rem)] rounded-2xl glass overflow-auto">
               <pre className="p-4 text-xs font-mono leading-relaxed whitespace-pre-wrap text-foreground/80">
                 {activeText || "No raw text available."}
               </pre>
@@ -142,7 +144,7 @@ export default function ResultsPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Plain-English summary
             </p>
-            <div className="h-[calc(100vh-16rem)] overflow-auto rounded-lg border bg-background p-4">
+            <div className="h-[calc(100vh-16rem)] overflow-auto rounded-2xl glass p-4">
               <Accordion
                 type="single"
                 collapsible

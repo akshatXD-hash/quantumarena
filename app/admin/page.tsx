@@ -66,8 +66,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="font-['Sora'] text-2xl font-bold text-[#1a2340]">Admin <span className="text-[#2ab8c8]">Dashboard</span></h1>
+        <p className="text-[#5a7080] text-sm mt-1">
           Platform-wide overview and report management
         </p>
       </div>

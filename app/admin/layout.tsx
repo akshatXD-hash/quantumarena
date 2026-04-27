@@ -8,9 +8,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (user.role !== "ADMIN") redirect("/upload");
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="page-bg flex flex-col">
+      <div className="page-blob-tl" />
+      <div className="page-blob-br" />
       <Navbar user={user} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 relative z-10">{children}</main>
     </div>
   );
 }

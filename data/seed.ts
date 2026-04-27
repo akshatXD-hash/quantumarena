@@ -2340,3 +2340,4 @@ const medicalData = [
 ];
 
 export default medicalData;
+module.exports = medicalData;
