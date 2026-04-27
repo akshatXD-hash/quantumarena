@@ -41,7 +41,8 @@ async function summarizeSection(
           .join("\n")
       : "None detected";
 
-  const contextDocs = await retrieveMedicalContext(text);
+  const boostTerms = [sectionName, ...flags.map((f) => f.test)].filter(Boolean);
+  const contextDocs = await retrieveMedicalContext(text, 5, 0.35, boostTerms);
   const contextText = contextDocs.length
     ? contextDocs
         .map(
