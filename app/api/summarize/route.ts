@@ -17,14 +17,47 @@ const openai = new OpenAI({
   },
 });
 
+// Models verified working on this OpenRouter key (see scripts/probe-models.ts).
+// Ordered by speed + reliability. Most other "free" models are currently
+// 429-rate-limited or 404 on this account. extractJSON() handles
+// markdown-fenced output so json_mode isn't required.
 const FREE_MODELS = [
+  "openai/gpt-oss-20b:free",
+  "openai/gpt-oss-120b:free",
+  "z-ai/glm-4.5-air:free",
   "google/gemma-3-27b-it:free",
   "meta-llama/llama-3.3-70b-instruct:free",
-  "google/gemma-4-31b-it:free",
-  "nvidia/nemotron-3-super-120b-a12b:free",
-  "minimax/minimax-m2.5:free",
-  "openrouter/free"
 ];
+
+// Strip markdown fences, language tags, and surrounding prose to get
+// the JSON object out of whatever the model returned.
+function extractJSON(raw: string): string {
+  let s = raw.trim();
+  // Strip ```json ... ``` or ``` ... ``` fences
+  s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  // Find the outermost {...} block
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first === -1 || last === -1 || last < first) return "{}";
+  return s.slice(first, last + 1);
+}
+
+// Models sometimes use slightly different field names — coalesce them
+// before falling back to the placeholder.
+function pickSummary(parsed: Record<string, unknown>): string | null {
+  const candidates = [
+    parsed.summary_text,
+    parsed.summary,
+    parsed.explanation,
+    parsed.text,
+    parsed.plain_english,
+    parsed.summaryText,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) return c.trim();
+  }
+  return null;
+}
 
 async function summarizeSection(
   sectionName: string,
@@ -34,52 +67,55 @@ async function summarizeSection(
   const flagText =
     flags.length > 0
       ? flags
-        .map(
-          (f) =>
-            `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange}, ${f.direction}, ${f.severity} severity)`
-        )
-        .join("\n")
-      : "None detected";
+          .map(
+            (f) =>
+              `- ${f.test}: ${f.value} ${f.unit} (normal: ${f.normalRange})`
+          )
+          .join("\n")
+      : "None";
 
   const boostTerms = [sectionName, ...flags.map((f) => f.test)].filter(Boolean);
-  const contextDocs = await retrieveMedicalContext(text, 5, 0.35, boostTerms);
+  const contextDocs = await retrieveMedicalContext(text, 4, 0.35, boostTerms);
   const contextText = contextDocs.length
     ? contextDocs
         .map(
-          (doc, index) =>
-            `Context ${index + 1}: ${doc.term} (${doc.category}) — ${doc.source}\n${doc.content}`
+          (doc) =>
+            `- ${doc.term}: ${doc.content.slice(0, 260).replace(/\n+/g, " ")}`
         )
-        .join("\n\n")
-    : "No relevant medical knowledge base context was found for this section.";
+        .join("\n")
+    : "(none)";
 
-  const prompt = `You are a medical report explainer helping patients understand their results.
+  const prompt = `You are explaining one section of a medical report to a patient with NO medical background. Write like you're talking to a friend.
 
-Medical Knowledge Base Context:
-${contextText}
+SECTION: ${sectionName}
 
-Section: ${sectionName}
-Report text:
+REPORT TEXT:
 ${text}
 
-Pre-detected abnormal values (use ONLY these, do not invent others):
+ABNORMAL VALUES (use ONLY these — do not invent more):
 ${flagText}
 
-Instructions:
-- Use only the provided medical knowledge base context and the report text.
-- Explain in Grade 8 plain English so any patient understands.
-- Mark abnormal values with [ABNORMAL] inline.
-- Never diagnose, prescribe, or speculate.
-- End with exactly 3 actionable next steps.
+BACKGROUND NOTES (use only if helpful):
+${contextText}
 
-Respond ONLY as valid JSON:
+WRITING RULES:
+- 2 to 4 short sentences. Total under 80 words.
+- Plain everyday English (Grade 6 reading level).
+- Replace every medical term with its plain meaning. Examples: "high blood sugar" not "hyperglycemia"; "kidney filter rate" not "eGFR"; "good cholesterol" not "HDL".
+- If a medical word MUST stay, put the plain meaning in parentheses right after it.
+- Mark each abnormal value inline with [ABNORMAL] right after the number.
+- No diagnosis, no prescriptions, no speculation. State the facts and what's outside normal range.
+- End with exactly 3 short, simple action steps (each one sentence, action-first verb).
+
+Respond ONLY with valid JSON in this exact shape:
 {
-  "summary_text": "plain English explanation",
+  "summary_text": "the 2-4 sentence plain-English explanation",
   "abnormal_flags": [{ "test": "...", "value": 0, "unit": "...", "normalRange": "...", "severity": "mild|high", "direction": "high|low" }],
-  "citations": [{ "source": "Clinical reference", "claim": "..." }],
+  "citations": [{ "source": "name", "claim": "what was used" }],
   "next_steps": ["step 1", "step 2", "step 3"]
 }`;
 
-  let lastError = null;
+  let lastError: unknown = null;
 
   for (const model of FREE_MODELS) {
     try {
@@ -88,43 +124,90 @@ Respond ONLY as valid JSON:
         messages: [
           {
             role: "system",
-            content: "You are a medical report explainer. Always respond with valid JSON only.",
+            content:
+              "You translate medical reports into plain language for non-medical readers. Always reply with valid JSON only. No prose, no markdown fences. Be brief.",
           },
           { role: "user", content: prompt },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
+        max_tokens: 600,
+        // NOTE: do NOT set response_format here — gpt-oss-120b loops
+        // infinitely when json_mode is enabled. extractJSON() handles
+        // markdown fences and surrounding prose anyway.
       });
 
-      const content = response.choices[0]?.message?.content ?? "{}";
+      const rawContent = response.choices[0]?.message?.content ?? "";
+      const cleanContent = extractJSON(rawContent);
 
-      // Robust extract JSON from text even if the model chatters before/after
-      const match = content.match(/\{[\s\S]*\}/);
-      const cleanContent = match ? match[0] : "{}";
-      const parsed = JSON.parse(cleanContent) as SummaryResult;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(cleanContent) as Record<string, unknown>;
+      } catch (parseErr) {
+        console.warn(
+          `[Summarize] ${model} returned unparseable JSON. First 200 chars:`,
+          rawContent.slice(0, 200)
+        );
+        throw parseErr;
+      }
+
+      const summary = pickSummary(parsed);
+      if (!summary) {
+        console.warn(
+          `[Summarize] ${model} returned JSON without a summary field. Keys:`,
+          Object.keys(parsed)
+        );
+        throw new Error("Missing summary field");
+      }
 
       return {
-        summary_text: parsed.summary_text ?? "No summary generated.",
-        abnormal_flags: Array.isArray(parsed.abnormal_flags) ? parsed.abnormal_flags : flags,
-        citations: Array.isArray(parsed.citations) ? parsed.citations : [],
-        next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
+        summary_text: summary,
+        abnormal_flags: Array.isArray(parsed.abnormal_flags)
+          ? (parsed.abnormal_flags as AbnormalFlag[])
+          : flags,
+        citations: Array.isArray(parsed.citations)
+          ? (parsed.citations as SummaryResult["citations"])
+          : [],
+        next_steps: Array.isArray(parsed.next_steps)
+          ? (parsed.next_steps as string[])
+          : Array.isArray(parsed.nextSteps)
+            ? (parsed.nextSteps as string[])
+            : [],
       };
     } catch (err) {
-      console.warn(`[Summarize] Model ${model} failed, falling back to next...`);
+      console.warn(
+        `[Summarize] Model ${model} failed:`,
+        err instanceof Error ? err.message : String(err)
+      );
       lastError = err;
       continue;
     }
   }
 
-  // If ALL models fail
   console.error("[Summarize] All free models failed. Last error:", lastError);
+
+  // Deterministic fallback so the user always sees something useful even
+  // when every LLM is rate-limited / down. Built from the abnormal flags
+  // (already detected in plain TS) and a short snippet of the section text.
+  const flagSummary =
+    flags.length > 0
+      ? `We found ${flags.length} value${flags.length === 1 ? "" : "s"} outside the normal range: ${flags
+          .map(
+            (f) =>
+              `${f.test} ${f.value}${f.unit} [ABNORMAL] (normal ${f.normalRange})`
+          )
+          .join("; ")}.`
+      : "No values outside the normal range were detected in this section.";
+
+  const snippet = text.replace(/\s+/g, " ").trim().slice(0, 220);
+
   return {
-    summary_text: `Summary for "${sectionName}" could not be generated. All AI models failed to respond correctly.`,
+    summary_text: `${flagSummary} The report says: "${snippet}${text.length > 220 ? "…" : ""}". Our AI helper is busy right now — please review the details with your doctor.`,
     abnormal_flags: flags,
     citations: [],
     next_steps: [
-      "Review this section with your doctor.",
-      "Ask your healthcare provider to explain any unfamiliar terms.",
-      "Bring this report to your next appointment.",
+      "Share this section with your doctor at your next visit.",
+      "Ask your doctor to explain any words or numbers you don't understand.",
+      "Try generating the AI summary again in a few minutes.",
     ],
   };
 }
@@ -136,7 +219,10 @@ export async function POST(request: NextRequest) {
   const body: unknown = await request.json();
   const parsed = summarizeSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    );
   }
 
   const { reportId, text } = parsed.data;
@@ -153,30 +239,34 @@ export async function POST(request: NextRequest) {
   }
 
   const chunks = chunkBySections(text);
-  const summaries = [];
 
-  for (const chunk of chunks) {
-    const flags = detectAbnormals(chunk.text);
-    const result = await summarizeSection(chunk.sectionName, chunk.text, flags);
+  // Process all sections in parallel — the previous sequential loop made
+  // a 5-section report wait ~5x as long as it needed to. Each section's
+  // RAG embed + LLM call is independent.
+  const summaries = await Promise.all(
+    chunks.map(async (chunk) => {
+      const flags = detectAbnormals(chunk.text);
+      const result = await summarizeSection(chunk.sectionName, chunk.text, flags);
 
-    const summary = await prisma.summary.create({
-      data: {
-        reportId,
-        sectionName: chunk.sectionName,
-        summaryText: result.summary_text,
-        abnormalFlags: result.abnormal_flags as object[],
-        citations: result.citations as object[],
-        nextSteps: result.next_steps,
-      },
-    });
+      const summary = await prisma.summary.create({
+        data: {
+          reportId,
+          sectionName: chunk.sectionName,
+          summaryText: result.summary_text,
+          abnormalFlags: result.abnormal_flags as object[],
+          citations: result.citations as object[],
+          nextSteps: result.next_steps,
+        },
+      });
 
-    summaries.push({
-      ...summary,
-      abnormal_flags: result.abnormal_flags,
-      citations: result.citations,
-      next_steps: result.next_steps,
-    });
-  }
+      return {
+        ...summary,
+        abnormal_flags: result.abnormal_flags,
+        citations: result.citations,
+        next_steps: result.next_steps,
+      };
+    })
+  );
 
   await prisma.report.update({
     where: { id: reportId },
